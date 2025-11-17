@@ -81,19 +81,19 @@ CineMatch is a modern, Netflix-style movie recommendation system that provides p
 ## 🎥 Demo
 
 ### Homepage
-![Homepage Screenshot](project/static/Home.jpg)
+![Homepage Screenshot](project/static/Home.png)
 
 ### Movie Recommendations
-![Recommendations Screenshot](project/static/Recomendations.jpg)
+![Recommendations Screenshot](project/static/Recomendations.png)
 
 ### Movie Details
-![Movie Details Screenshot](project/static/Details.jpg)
+![Movie Details Screenshot](project/static/Details.png)
 
 ### Movie Search
-![Movie Search Screenshot](project/static/Search.jpg)
+![Movie Search Screenshot](project/static/Search.png)
 
 ### Movie Trending
-![Movie Trending Screenshot](project/static/Trending.jpg)
+![Movie Trending Screenshot](project/static/Trending.png)
 
 
 ---
@@ -420,7 +420,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact & Support
 
-- **Developer**: [Your Name](https://github.com/himanshumis2022)
+- **Developer**: [Himanshu Mishra](https://github.com/himanshumis2022)
 - **Email**: himanshumis1900@gmail.com
 - **Project Link**: https://github.com/himanshumis2022/cinematch-recommendation-system
 
