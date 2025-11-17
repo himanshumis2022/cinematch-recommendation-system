@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎬 Movies like {{ query }} - CineMatch</title>
+    <meta name="description" content="Discover movies similar to {{ query }} with our AI-powered recommendations.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <h1>🎯 Perfect Matches Found!</h1>
+            <p>Movies similar to <strong>"{{ query }}"</strong> • Powered by AI</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="results-header" style="text-align: center; margin-bottom: 3rem;">
+            <h2 class="section-title">{{ recommendations|length }} Recommendations for "{{ query }}"</h2>
+            <p style="color: var(--text-secondary); font-size: 1.1rem; margin-bottom: 1rem;">
+                ✨ These movies share similar themes, genres, cast, and storytelling with your choice
+            </p>
+            <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 2rem;">
+                <a class="btn" href="{{ url_for('index') }}" style="background: var(--gradient-primary);">
+                    🔍 Search Again
+                </a>
+                <button class="btn" onclick="window.scrollTo({top: document.body.scrollHeight, behavior: 'smooth'})" style="background: var(--accent-light); color: var(--accent);">
+                    📊 View All Results
+                </button>
+            </div>
+        </section>
+
+        <section class="recommendations-grid">
+            <div class="grid" style="animation: fadeInUp 0.8s ease-out;">
+                {% for movie in recommendations %}
+                <article class="card" style="animation-delay: {{ loop.index0 * 0.1 }}s;">
+                    <a href="{{ url_for('movie_details', movie_id=movie.id) }}" class="poster-link">
+                        <img 
+                            loading="lazy" 
+                            src="{{ movie.poster }}" 
+                            alt="{{ movie.title }} poster" 
+                            class="poster"
+                            onerror="this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 300 450\"><rect width=\"300\" height=\"450\" fill=\"%23141b2d\"/><text x=\"150\" y=\"225\" text-anchor=\"middle\" fill=\"%23a8b2d1\" font-size=\"16\">No Image</text></svg>'"
+                        >
+                        <div class="poster-overlay">
+                            <span>🎬 View Details</span>
+                        </div>
+                    </a>
+                    <div class="card-content">
+                        <h3 class="card-title">
+                            <a href="{{ url_for('movie_details', movie_id=movie.id) }}">{{ movie.title }}</a>
+                        </h3>
+                        {% if movie.release_date %}
+                        <p class="card-meta" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem;">
+                            📅 {{ movie.release_date[:4] }}
+                        </p>
+                        {% endif %}
+                        {% if movie.genres %}
+                        <div class="card-genres" style="margin-top: 0.75rem;">
+                            {% for genre in movie.genres[:2] %}
+                            <span class="genre-tag" style="background: var(--accent-light); color: var(--accent); padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.8rem; margin-right: 0.5rem;">
+                                {{ genre }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </section>
+
+        {% if recommendations|length == 0 %}
+        <section class="no-results" style="text-align: center; padding: 4rem 0;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">😔</div>
+            <h2 style="color: var(--text); margin-bottom: 1rem;">No Recommendations Found</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                We couldn't find similar movies with available posters. Try searching for a different movie!
+            </p>
+            <a class="btn" href="{{ url_for('index') }}">🔍 Try Another Movie</a>
+        </section>
+        {% endif %}
+
+        <section class="actions" style="text-align: center; padding: 3rem 0;">
+            <div style="margin-bottom: 2rem;">
+                <a class="btn" href="{{ url_for('index') }}" style="background: var(--gradient-primary); margin-right: 1rem;">
+                    🏠 Back to Home
+                </a>
+                <button class="btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" style="background: var(--secondary-light); color: var(--secondary);">
+                    ⬆️ Back to Top
+                </button>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                💡 Click on any movie to see detailed information, cast, and crew
+            </p>
+        </section>
+    </main>
+
+    <footer class="footer" style="margin-top: 2rem; padding: 2rem; text-align: center; border-top: 1px solid var(--border-light);">
+        <p style="color: var(--text-secondary);">
+            🎯 Found {{ recommendations|length }} perfect matches • Powered by Machine Learning ❤️
+        </p>
+    </footer>
+
+    <style>
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .card {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+        
+        .card-content {
+            padding: 1rem 1.5rem 1.5rem;
+        }
+        
+        .card-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .genre-tag {
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        .results-header {
+            background: var(--gradient-card);
+            padding: 2rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-md);
+        }
+    </style>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+        // Animate cards on load
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.card');
+            cards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>

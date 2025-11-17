@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineMatch - Movie Recommendations</title>
+    <meta name="description" content="Discover amazing movies based on your favorites with our AI-powered recommendation engine.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <h1>🎬 CineMatch</h1>
+            <p>Discover amazing movies tailored to your taste using AI-powered recommendations</p>
+        </div>
+    </header>
+
+    <main class="container">
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for message in messages %}
+                        <div class="flash-message">
+                            <span>⚠️</span>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <section class="hero-section">
+            <h2 class="hero-title">Find Your Next Favorite Movie</h2>
+            <p class="hero-subtitle">Enter a movie you love and discover similar films you'll enjoy</p>
+        </section>
+
+        <section class="search-section">
+            <form class="search-form" method="POST" action="{{ url_for('recommend_route') }}" id="searchForm">
+                <div class="search-container">
+                    <input 
+                        type="text" 
+                        name="movie" 
+                        class="search-input" 
+                        placeholder="e.g., The Dark Knight, Inception, Avengers..." 
+                        autocomplete="off"
+                        required
+                        id="movieInput"
+                        list="movieTitles"
+                        aria-label="Movie title"
+                    >
+                    <datalist id="movieTitles">
+                        {% for title in titles %}
+                            <option value="{{ title }}">{{ title }}</option>
+                        {% endfor %}
+                    </datalist>
+                    <div id="autocomplete-list" role="listbox" aria-label="Movie suggestions"></div>
+                </div>
+                <button type="submit" class="btn" id="searchBtn">
+                    <span class="btn-text">✨ Get Recommendations</span>
+                    <div class="btn-loading hidden">🔄 Finding movies...</div>
+                </button>
+            </form>
+        </section>
+
+        <div class="spinner" id="loadingSpinner" aria-hidden="true"></div>
+
+        <section class="features" style="margin-top: 4rem;">
+            <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+                <div class="feature-card" style="background: var(--gradient-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">🤖</div>
+                    <h3 style="color: var(--text); margin-bottom: 0.5rem;">AI-Powered</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">Advanced machine learning algorithms analyze movie features to find perfect matches</p>
+                </div>
+                <div class="feature-card" style="background: var(--gradient-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">🎭</div>
+                    <h3 style="color: var(--text); margin-bottom: 0.5rem;">4,800+ Movies</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">Massive database of popular movies from various genres and decades</p>
+                </div>
+                <div class="feature-card" style="background: var(--gradient-card); padding: 2rem; border-radius: 16px; border: 1px solid var(--border); text-align: center;">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">⚡</div>
+                    <h3 style="color: var(--text); margin-bottom: 0.5rem;">Instant Results</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem;">Get personalized recommendations in seconds with detailed movie information</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer" style="margin-top: 4rem; padding: 2rem; text-align: center; border-top: 1px solid var(--border-light);">
+        <p style="color: var(--text-secondary);">Made with ❤️ using TMDB API • Powered by Machine Learning</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>

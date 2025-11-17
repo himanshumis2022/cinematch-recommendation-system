@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ movie.title }} - Movie Details | CineMatch</title>
+    <meta name="description" content="Detailed information about {{ movie.title }} including cast, crew, plot, and more.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <h1>🎬 Movie Details</h1>
+            <p>Everything you need to know about this film</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="movie-details">
+            <div class="movie-header">
+                <div class="movie-poster-container">
+                    {% if movie.poster %}
+                    <img 
+                        src="{{ movie.poster }}" 
+                        alt="{{ movie.title }} poster" 
+                        class="movie-poster"
+                        onerror="this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 350 525\"><rect width=\"350\" height=\"525\" fill=\"%23141b2d\"/><text x=\"175\" y=\"262\" text-anchor=\"middle\" fill=\"%23a8b2d1\" font-size=\"20\">No Poster Available</text></svg>'"
+                    >
+                    {% else %}
+                    <div class="no-poster" style="width: 350px; height: 525px; background: var(--gradient-card); border-radius: 16px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border);">
+                        <div style="text-align: center; color: var(--text-secondary);">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🎬</div>
+                            <p>No Poster Available</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="movie-info">
+                    <h1>{{ movie.title }}</h1>
+                    
+                    {% if movie.title == 'Movie Details Currently Unavailable' or movie.title == 'Movie Details Unavailable' %}
+                    <div class="error-notice" style="background: rgba(255, 165, 0, 0.1); border: 2px solid rgba(255, 165, 0, 0.3); border-radius: 12px; padding: 1rem; margin: 1rem 0; color: #ffaa00;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="font-size: 1.5rem;">⚠️</span>
+                            <div>
+                                <strong>Connectivity Issue</strong><br>
+                                <small>We're having trouble connecting to our movie database. Please try refreshing the page or check back later.</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="movie-meta">
+                        {% if movie.release_date and movie.release_date != 'Unknown' %}
+                        <span class="meta-item">📅 {{ movie.release_date }}</span>
+                        {% endif %}
+                        {% for genre in movie.genres %}
+                        {% if genre != 'Unknown' and genre != 'Unavailable' and genre != 'Error' %}
+                        <span class="meta-item">{{ genre }}</span>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    
+                    {% if movie.overview %}
+                    <div class="movie-overview">
+                        <h3 style="color: var(--text); margin-bottom: 1rem; font-size: 1.3rem;">📖 Plot Summary</h3>
+                        <p>{{ movie.overview }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if movie.directors %}
+                    <div style="margin-bottom: 2rem;">
+                        <h3 style="color: var(--text); margin-bottom: 0.5rem; font-size: 1.2rem;">🎭 Directed by</h3>
+                        <p style="color: var(--accent); font-weight: 600; font-size: 1.1rem;">
+                            {{ movie.directors | join(', ') }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if movie.cast %}
+            <div class="cast-crew">
+                <div class="cast-list">
+                    <h3>⭐ Main Cast</h3>
+                    <div class="cast-grid">
+                        {% for actor in movie.cast %}
+                        <div class="cast-member">
+                            <div class="cast-name">{{ actor.name }}</div>
+                            {% if actor.character %}
+                            <div class="cast-character">as {{ actor.character }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="crew-list">
+                    <h3>🎬 Production Info</h3>
+                    <div style="space-y: 1rem;">
+                        {% if movie.directors %}
+                        <div class="crew-item">
+                            <strong style="color: var(--text);">Director(s):</strong>
+                            <span style="color: var(--text-secondary);">{{ movie.directors | join(', ') }}</span>
+                        </div>
+                        {% endif %}
+                        {% if movie.release_date %}
+                        <div class="crew-item">
+                            <strong style="color: var(--text);">Release Date:</strong>
+                            <span style="color: var(--text-secondary);">{{ movie.release_date }}</span>
+                        </div>
+                        {% endif %}
+                        {% if movie.genres %}
+                        <div class="crew-item">
+                            <strong style="color: var(--text);">Genres:</strong>
+                            <span style="color: var(--text-secondary);">{{ movie.genres | join(', ') }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="crew-item">
+                            <strong style="color: var(--text);">TMDB ID:</strong>
+                            <span style="color: var(--text-secondary);">{{ movie.id }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="actions">
+            <a class="btn" href="{{ url_for('index') }}" style="background: var(--gradient-primary); margin-right: 1rem;">
+                🏠 Back to Home
+            </a>
+            <button class="btn" onclick="history.back()" style="background: var(--secondary-light); color: var(--secondary); margin-right: 1rem;">
+                ← Go Back
+            </button>
+            <button class="btn" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" style="background: var(--accent-light); color: var(--accent);">
+                ⬆️ Back to Top
+            </button>
+        </div>
+
+        <!-- Similar Movies Section (Placeholder for future enhancement) -->
+        <section class="similar-movies" style="margin-top: 4rem; padding: 2rem; background: var(--gradient-card); border-radius: 16px; border: 1px solid var(--border); text-align: center;">
+            <h3 style="color: var(--text); margin-bottom: 1rem;">🔍 Want More Recommendations?</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                Use "{{ movie.title }}" as your search query to find similar movies!
+            </p>
+            <form method="POST" action="{{ url_for('recommend_route') }}" style="display: inline-block;">
+                <input type="hidden" name="movie" value="{{ movie.title }}">
+                <button type="submit" class="btn" style="background: var(--gradient-primary);">
+                    ✨ Find Similar Movies
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <footer class="footer" style="margin-top: 4rem; padding: 2rem; text-align: center; border-top: 1px solid var(--border-light);">
+        <p style="color: var(--text-secondary);">
+            Movie data provided by TMDB • Enhanced with ❤️ by CineMatch
+        </p>
+    </footer>
+
+    <style>
+        .movie-poster-container {
+            position: relative;
+        }
+        
+        .movie-poster-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 70%, rgba(255, 107, 107, 0.1));
+            border-radius: 16px;
+            pointer-events: none;
+        }
+        
+        .cast-grid {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .crew-item {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .crew-item:last-child {
+            border-bottom: none;
+        }
+        
+        @media (max-width: 768px) {
+            .cast-crew {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+    <script>
+        // Add some interactive elements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate the poster on load
+            const poster = document.querySelector('.movie-poster');
+            if (poster) {
+                poster.style.opacity = '0.8';
+                poster.style.transition = 'all 0.3s ease';
+                
+                poster.addEventListener('mouseenter', function() {
+                    this.style.opacity = '1';
+                    this.style.transform = 'scale(1.02)';
+                });
+                
+                poster.addEventListener('mouseleave', function() {
+                    this.style.opacity = '0.8';
+                    this.style.transform = 'scale(1)';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

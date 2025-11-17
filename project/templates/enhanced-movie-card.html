@@ -1,0 +1,122 @@
+<!-- Enhanced Movie Card Template - Example Implementation -->
+<div class="movie-card" 
+     role="button" 
+     tabindex="0" 
+     aria-label="View details for {{ movie.title }}"
+     onclick="window.location.href='/details/{{ movie.id }}'"
+     data-movie-id="{{ movie.id }}">
+    
+    <!-- Quick Actions Overlay -->
+    <div class="quick-actions">
+        <button class="quick-action-btn" 
+                aria-label="Add to watchlist"
+                onclick="event.stopPropagation(); netflixApp.addToWatchlist('{{ movie.id }}')">
+            <span>+</span>
+        </button>
+        <button class="quick-action-btn" 
+                aria-label="Like movie"
+                onclick="event.stopPropagation(); netflixApp.likeMovie('{{ movie.id }}')">
+            <span>❤</span>
+        </button>
+        <button class="quick-action-btn" 
+                aria-label="Play trailer"
+                onclick="event.stopPropagation(); netflixApp.showTrailer('{{ movie.id }}')">
+            <span>▶</span>
+        </button>
+    </div>
+    
+    <!-- Movie Poster with Progressive Loading -->
+    <img class="movie-poster" 
+         {% if movie.poster_path %}
+         src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQ1MCIgdmlld0JveD0iMCAwIDMwMCA0NTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iNDUwIiBmaWxsPSIjMzMzIi8+PC9zdmc+"
+         data-src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}"
+         {% else %}
+         src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQ1MCIgdmlld0JveD0iMCAwIDMwMCA0NTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iNDUwIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3NTc1NzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=="
+         {% endif %}
+         alt="{{ movie.title }} poster"
+         loading="lazy"
+         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjQ1MCIgdmlld0JveD0iMCAwIDMwMCA0NTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMDAiIGhlaWdodD0iNDUwIiBmaWxsPSIjMzMzIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZpbGw9IiM3NTc1NzUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='">
+    
+    <!-- Enhanced Movie Info -->
+    <div class="movie-info">
+        <h3 class="movie-title">{{ movie.title }}</h3>
+        <div class="movie-meta">
+            <!-- Enhanced Rating with Stars -->
+            <div class="rating-stars" aria-label="Rating {{ movie.vote_average }} out of 10">
+                {% set rating = (movie.vote_average / 2) | round %}
+                {% for i in range(5) %}
+                    <span class="rating-star {% if i >= rating %}empty{% endif %}">★</span>
+                {% endfor %}
+                <span class="rating-number">{{ movie.vote_average }}</span>
+            </div>
+            {% if movie.release_date %}
+                <span class="release-year">{{ movie.release_date[:4] }}</span>
+            {% endif %}
+        </div>
+        
+        <!-- Movie Description (if available) -->
+        {% if movie.overview %}
+            <p class="movie-description">{{ movie.overview[:100] }}{% if movie.overview|length > 100 %}...{% endif %}</p>
+        {% endif %}
+        
+        <!-- Genres -->
+        {% if movie.genres %}
+            <div class="movie-genres">
+                {% for genre in movie.genres[:3] %}
+                    <span class="genre-tag">{{ genre.name }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- CSS for Enhanced Movie Card Features -->
+<style>
+.movie-genres {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.genre-tag {
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rating-number {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+}
+
+.movie-description {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.3;
+    margin: 0.5rem 0;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.movie-card:hover .movie-description {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Progressive image loading */
+img[data-src] {
+    filter: blur(2px);
+    transition: filter 0.3s ease;
+}
+
+img[data-src].loaded,
+img:not([data-src]) {
+    filter: none;
+}
+</style>

@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ movie.title }} - CineMatch</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='netflix-style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+    <!-- Netflix-Style Header -->
+    <header class="netflix-header scrolled">
+        <div class="header-content">
+            <a href="{{ url_for('index') }}" class="netflix-logo">CineMatch</a>
+            
+            <nav class="header-nav">
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="#" class="active">Movie Details</a></li>
+                    <li><a href="#trending">Trending</a></li>
+                    <li><a href="#favorites">My List</a></li>
+                </ul>
+                
+                <div class="netflix-search">
+                    <form method="POST" action="{{ url_for('recommend_route') }}" id="searchForm">
+                        <div class="search-container">
+                            <span class="search-icon">🔍</span>
+                            <input 
+                                type="text" 
+                                name="movie" 
+                                class="search-input" 
+                                placeholder="Search movies..." 
+                                autocomplete="off"
+                                id="movieInput"
+                                list="movieTitles"
+                            >
+                            <datalist id="movieTitles">
+                                <!-- This would be populated with available titles -->
+                            </datalist>
+                            <div id="autocomplete-list" role="listbox" aria-label="Movie suggestions"></div>
+                        </div>
+                    </form>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Movie Hero Section -->
+    <section class="movie-hero" style="margin-top: 80px;">
+        {% if movie %}
+            <div class="movie-hero-bg" 
+                 style="background-image: linear-gradient(rgba(20, 20, 20, 0.3), rgba(20, 20, 20, 0.8)), url('{% if movie.backdrop_path %}https://image.tmdb.org/t/p/original{{ movie.backdrop_path }}{% else %}{{ url_for('static', filename='imag1.jpg') }}{% endif %}');">
+                
+                <div class="movie-hero-content">
+                    <div class="movie-poster-large">
+                        {% if movie.poster_path %}
+                            <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" 
+                                 alt="{{ movie.title }}" 
+                                 class="poster-image">
+                        {% else %}
+                            <div class="poster-placeholder">
+                                <span class="poster-icon">🎬</span>
+                                <span class="poster-title">{{ movie.title[:15] }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="movie-details">
+                        <h1 class="movie-title-large">{{ movie.title }}</h1>
+                        
+                        {% if movie.tagline %}
+                            <p class="movie-tagline">{{ movie.tagline }}</p>
+                        {% endif %}
+                        
+                        <div class="movie-meta-large">
+                            {% if movie.vote_average %}
+                                <span class="rating-badge">
+                                    ⭐ {{ "%.1f"|format(movie.vote_average) }}
+                                </span>
+                            {% endif %}
+                            
+                            {% if movie.release_date %}
+                                <span class="year-badge">{{ movie.release_date[:4] }}</span>
+                            {% endif %}
+                            
+                            {% if movie.runtime %}
+                                <span class="duration-badge">{{ movie.runtime }}min</span>
+                            {% endif %}
+                            
+                            {% if movie.genres %}
+                                {% for genre in movie.genres[:3] %}
+                                    <span class="genre-badge">{{ genre.name }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        {% if movie.overview %}
+                            <p class="movie-overview">{{ movie.overview }}</p>
+                        {% endif %}
+                        
+                        <div class="movie-actions-large">
+                            <button class="netflix-btn btn-primary">
+                                ▶️ Play
+                            </button>
+                            <button class="netflix-btn btn-secondary">
+                                ➕ My List
+                            </button>
+                            <button class="netflix-btn btn-secondary">
+                                👍 Like
+                            </button>
+                            <button class="netflix-btn btn-secondary">
+                                📤 Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <!-- Error State -->
+            <div class="error-hero">
+                <div class="error-content">
+                    <div class="error-icon">❌</div>
+                    <h1 class="error-title">Movie Not Found</h1>
+                    <p class="error-text">Sorry, we couldn't load the movie details. The movie might not be available or there was a connection issue.</p>
+                    <a href="{{ url_for('index') }}" class="netflix-btn btn-primary">
+                        🏠 Back to Home
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </section>
+
+    <!-- Movie Information Sections -->
+    {% if movie %}
+        <main class="netflix-main">
+            <!-- Additional Details -->
+            <section class="movie-info-section">
+                <div class="info-grid">
+                    <div class="info-primary">
+                        <h2 class="section-title">About {{ movie.title }}</h2>
+                        
+                        <div class="info-details">
+                            {% if movie.director %}
+                                <div class="info-item">
+                                    <span class="info-label">Director:</span>
+                                    <span class="info-value">{{ movie.director }}</span>
+                                </div>
+                            {% endif %}
+                            
+                            {% if movie.cast %}
+                                <!-- Enhanced Cast Section -->
+                                <div class="cast-section">
+                                    <span class="info-label cast-title">Cast:</span>
+                                    <div class="cast-grid">
+                                        {% for actor in movie.cast[:6] %}
+                                            <div class="cast-member" onclick="netflixApp.showCastModal({{ actor | tojson | safe }})" style="cursor: pointer;">
+                                                <div class="cast-photo">
+                                                    {% if actor.profile_path %}
+                                                        <img src="https://image.tmdb.org/t/p/w185{{ actor.profile_path }}" 
+                                                             alt="{{ actor.name }}" 
+                                                             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTg1IiBoZWlnaHQ9IjI3OCIgdmlld0JveD0iMCAwIDE4NSAyNzgiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxODUiIGhlaWdodD0iMjc4IiBmaWxsPSIjMzMzIi8+CjxjaXJjbGUgY3g9IjkyLjUiIGN5PSI5MCIgcj0iMzAiIGZpbGw9IiM1NTUiLz4KPHBhdGggZD0iTTYwIDIwMEM2MCAyMDAgNjAgMTYwIDkyLjUgMTYwQzEyNSAxNjAgMTI1IDIwMCAxMjUgMjAwSDE4NVYyNzhINDBWMjAwSDYwWiIgZmlsbD0iIzU1NSIvPgo8L3N2Zz4K';">
+                                                    {% else %}
+                                                        <div class="cast-placeholder">
+                                                            <svg viewBox="0 0 185 278" fill="none">
+                                                                <rect width="185" height="278" fill="#333"/>
+                                                                <circle cx="92.5" cy="90" r="30" fill="#555"/>
+                                                                <path d="M60 200C60 200 60 160 92.5 160C125 160 125 200 125 200H185V278H40V200H60Z" fill="#555"/>
+                                                            </svg>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="cast-info">
+                                                    <div class="actor-name">{{ actor.name }}</div>
+                                                    {% if actor.character %}
+                                                        <div class="character-name">as {{ actor.character }}</div>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endif %}
+                            
+                            {% if movie.production_companies %}
+                                <div class="info-item">
+                                    <span class="info-label">Production:</span>
+                                    <span class="info-value">
+                                        {% for company in movie.production_companies[:3] %}
+                                            {{ company.name }}{% if not loop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                </div>
+                            {% endif %}
+                            
+                            {% if movie.budget and movie.budget > 0 %}
+                                <div class="info-item">
+                                    <span class="info-label">Budget:</span>
+                                    <span class="info-value">${{ "{:,}".format(movie.budget) }}</span>
+                                </div>
+                            {% endif %}
+                            
+                            {% if movie.revenue and movie.revenue > 0 %}
+                                <div class="info-item">
+                                    <span class="info-label">Box Office:</span>
+                                    <span class="info-value">${{ "{:,}".format(movie.revenue) }}</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="info-sidebar">
+                        {% if movie.vote_count %}
+                            <div class="rating-details">
+                                <h3>Audience Score</h3>
+                                <div class="rating-display">
+                                    <span class="rating-number">{{ "%.1f"|format(movie.vote_average) }}</span>
+                                    <span class="rating-max">/10</span>
+                                </div>
+                                <p class="rating-count">Based on {{ "{:,}".format(movie.vote_count) }} votes</p>
+                            </div>
+                        {% endif %}
+                        
+                        {% if movie.spoken_languages %}
+                            <div class="languages">
+                                <h3>Languages</h3>
+                                <ul>
+                                    {% for language in movie.spoken_languages %}
+                                        <li>{{ language.english_name }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </section>
+
+            <!-- Similar Movies Section -->
+            <section class="netflix-row">
+                <div class="section-header">
+                    <h2 class="section-title">More Like This</h2>
+                    <form method="POST" action="{{ url_for('recommend_route') }}" style="display: inline;">
+                        <input type="hidden" name="movie" value="{{ movie.title }}">
+                        <button type="submit" class="view-all" style="background: none; border: none; cursor: pointer;">
+                            View All Recommendations
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="movie-row">
+                    <!-- This would be populated with similar movies -->
+                    <div class="row-movie-card loading-skeleton" style="height: 200px;"></div>
+                    <div class="row-movie-card loading-skeleton" style="height: 200px;"></div>
+                    <div class="row-movie-card loading-skeleton" style="height: 200px;"></div>
+                    <div class="row-movie-card loading-skeleton" style="height: 200px;"></div>
+                </div>
+            </section>
+        </main>
+    {% endif %}
+
+    <script src="{{ url_for('static', filename='enhanced-app.js') }}"></script>
+    <script>
+        // Enhanced form submission
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            const input = document.getElementById('movieInput');
+            if (!input.value.trim()) {
+                e.preventDefault();
+                alert('Please enter a movie title to search for recommendations.');
+                input.focus();
+            }
+        });
+    </script>
+
+    <style>
+        /* Movie Details Specific Styles */
+        .movie-hero {
+            position: relative;
+            min-height: 70vh;
+        }
+
+        .movie-hero-bg {
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .movie-hero-content {
+            display: flex;
+            gap: 3rem;
+            max-width: var(--container-max-width);
+            margin: 0 auto;
+            width: 100%;
+            align-items: flex-start;
+        }
+
+        .movie-poster-large {
+            flex: 0 0 300px;
+        }
+
+        .poster-image {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .poster-placeholder {
+            width: 100%;
+            aspect-ratio: 2/3;
+            background: var(--card);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .poster-placeholder .poster-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+        }
+
+        .movie-details {
+            flex: 1;
+            padding-top: 2rem;
+        }
+
+        .movie-title-large {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+
+        .movie-tagline {
+            font-size: 1.3rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: 1.5rem;
+        }
+
+        .movie-meta-large {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .rating-badge,
+        .year-badge,
+        .duration-badge,
+        .genre-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .rating-badge {
+            background: var(--accent);
+            color: var(--text);
+        }
+
+        .year-badge,
+        .duration-badge {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+        }
+
+        .genre-badge {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .movie-overview {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 800px;
+        }
+
+        .movie-actions-large {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .movie-info-section {
+            padding: 3rem 0;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 3rem;
+            max-width: var(--container-max-width);
+            margin: 0 auto;
+        }
+
+        .info-details {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: var(--text);
+            min-width: 120px;
+        }
+
+        .info-value {
+            color: var(--text-secondary);
+        }
+
+        .rating-details {
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .rating-display {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 1rem 0;
+        }
+
+        .rating-max {
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .rating-count {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .languages {
+            background: var(--card);
+            padding: 2rem;
+            border-radius: 12px;
+        }
+
+        .languages h3 {
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .languages ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .languages li {
+            color: var(--text-secondary);
+            padding: 0.25rem 0;
+        }
+
+        .error-hero {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .error-content {
+            max-width: 500px;
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .error-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 1rem;
+        }
+
+        .error-text {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .movie-hero-content {
+                flex-direction: column;
+                text-align: center;
+                gap: 2rem;
+            }
+
+            .movie-poster-large {
+                flex: none;
+                max-width: 250px;
+                margin: 0 auto;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .movie-meta-large {
+                justify-content: center;
+            }
+
+            .movie-actions-large {
+                justify-content: center;
+            }
+        }
+    </style>
+</body>
+</html>

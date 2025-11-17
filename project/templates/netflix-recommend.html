@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recommendations - CineMatch</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='netflix-style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>">
+</head>
+<body>
+    <!-- Netflix-Style Header -->
+    <header class="netflix-header scrolled">
+        <div class="header-content">
+            <a href="{{ url_for('index') }}" class="netflix-logo">CineMatch</a>
+            
+            <nav class="header-nav">
+                <ul class="nav-links">
+                    <li><a href="{{ url_for('index') }}">Home</a></li>
+                    <li><a href="#" class="active">Recommendations</a></li>
+                    <li><a href="#trending">Trending</a></li>
+                    <li><a href="#favorites">My List</a></li>
+                </ul>
+                
+                <div class="netflix-search">
+                    <form method="POST" action="{{ url_for('recommend_route') }}" id="searchForm">
+                        <div class="search-container">
+                            <span class="search-icon">🔍</span>
+                            <input 
+                                type="text" 
+                                name="movie" 
+                                class="search-input" 
+                                placeholder="Search movies..." 
+                                autocomplete="off"
+                                id="movieInput"
+                                list="movieTitles"
+                                value="{{ searched_movie if searched_movie else '' }}"
+                            >
+                            <datalist id="movieTitles">
+                                {% for title in titles %}
+                                    <option value="{{ title }}">{{ title }}</option>
+                                {% endfor %}
+                            </datalist>
+                            <div id="autocomplete-list" role="listbox" aria-label="Movie suggestions"></div>
+                        </div>
+                    </form>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="netflix-main" style="margin-top: 100px;" data-searched-movie="{{ searched_movie if searched_movie else '' }}">
+        {% if recommendations %}
+            <!-- Search Result Header -->
+            <section class="search-results">
+                <div class="results-header">
+                    <h1 class="results-title">
+                        {% if searched_movie %}
+                            Because you searched for "{{ searched_movie }}"
+                        {% else %}
+                            Recommended for You
+                        {% endif %}
+                    </h1>
+                    <p class="results-count">{{ recommendations|length }} movies found</p>
+                </div>
+            </section>
+
+            <!-- Recommended Movies Grid -->
+            <section class="netflix-row">
+                <div class="movie-grid">
+                    {% for movie in recommendations %}
+                    <div class="movie-card" onclick="window.location.href='{{ url_for('movie_details', movie_id=movie.id) }}'">
+                        {% if movie.poster_path %}
+                            <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" 
+                                 alt="{{ movie.title }}" 
+                                 class="movie-poster"
+                                 style="opacity: 0; transition: opacity 0.3s ease;"
+                                 onload="this.style.opacity='1';"
+                                 onerror="this.style.display='none'; this.parentElement.querySelector('.poster-fallback').style.display='flex';">
+                            <div class="poster-fallback" style="display:none;">
+                                <span class="poster-icon">🎬</span>
+                                <span class="poster-title">{{ movie.title[:20] }}{% if movie.title|length > 20 %}...{% endif %}</span>
+                            </div>
+                        {% else %}
+                            <div class="placeholder-poster">
+                                <span class="poster-icon">🎬</span>
+                                <span class="poster-title">{{ movie.title[:20] }}{% if movie.title|length > 20 %}...{% endif %}</span>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="movie-info">
+                            <h3 class="movie-title">{{ movie.title }}</h3>
+                            
+                            <div class="movie-meta">
+                                {% if movie.vote_average %}
+                                    <span class="movie-rating">
+                                        ⭐ {{ "%.1f"|format(movie.vote_average) }}
+                                    </span>
+                                {% endif %}
+                                {% if movie.release_date %}
+                                    <span>{{ movie.release_date[:4] }}</span>
+                                {% endif %}
+                                {% if movie.genres %}
+                                    <span>{{ movie.genres[0].name }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if movie.overview %}
+                                <p class="movie-description">{{ movie.overview }}</p>
+                            {% endif %}
+                            
+                            <div class="movie-actions">
+                                <button class="action-btn" title="Play" onclick="event.stopPropagation(); playMovie('{{ movie.title }}')">
+                                    ▶️
+                                </button>
+                                <button class="action-btn" title="Add to List" onclick="event.stopPropagation(); addToList('{{ movie.id }}')">
+                                    ➕
+                                </button>
+                                <button class="action-btn" title="Like" onclick="event.stopPropagation(); likeMovie('{{ movie.id }}')">
+                                    👍
+                                </button>
+                                <button class="action-btn" title="More Info" onclick="event.stopPropagation(); window.location.href='{{ url_for('movie_details', movie_id=movie.id) }}'">
+                                    ℹ️
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Continue Watching Section -->
+            <section class="netflix-row">
+                <div class="section-header">
+                    <h2 class="section-title">More Like This</h2>
+                    <a href="{{ url_for('index') }}" class="view-all">Search Again</a>
+                </div>
+                
+                <div class="movie-row">
+                    {% for movie in recommendations[:6] %}
+                    <div class="row-movie-card" onclick="window.location.href='{{ url_for('movie_details', movie_id=movie.id) }}'">
+                        {% if movie.backdrop_path %}
+                            <img src="https://image.tmdb.org/t/p/w500{{ movie.backdrop_path }}" 
+                                 alt="{{ movie.title }}" 
+                                 class="movie-poster">
+                        {% elif movie.poster_path %}
+                            <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" 
+                                 alt="{{ movie.title }}" 
+                                 class="movie-poster">
+                        {% else %}
+                            <div class="movie-poster placeholder-poster">
+                                <span class="poster-icon">🎬</span>
+                                <span class="poster-title">{{ movie.title[:15] }}{% if movie.title|length > 15 %}...{% endif %}</span>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="movie-info">
+                            <h3 class="movie-title">{{ movie.title }}</h3>
+                            <div class="movie-meta">
+                                {% if movie.vote_average %}
+                                    <span class="movie-rating">⭐ {{ "%.1f"|format(movie.vote_average) }}</span>
+                                {% endif %}
+                                {% if movie.release_date %}
+                                    <span>{{ movie.release_date[:4] }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+        {% else %}
+            <!-- No Results State -->
+            <section class="no-results">
+                <div class="no-results-content">
+                    <div class="no-results-icon">🎬</div>
+                    <h2 class="no-results-title">No Recommendations Found</h2>
+                    <p class="no-results-text">
+                        We couldn't find any movies similar to your search. Try searching for a different movie title.
+                    </p>
+                    <a href="{{ url_for('index') }}" class="netflix-btn btn-primary">
+                        🏠 Back to Home
+                    </a>
+                </div>
+            </section>
+        {% endif %}
+
+        <!-- Back to Top Button -->
+        <button class="back-to-top" id="backToTop" onclick="scrollToTop()">
+            ⬆️
+        </button>
+    </main>
+
+    <script src="{{ url_for('static', filename='enhanced-app.js') }}"></script>
+    <script>
+        // Movie interaction functions
+        function playMovie(title) {
+            alert(`Playing "${title}" - This would open the movie player in a real streaming app!`);
+        }
+
+        function addToList(movieId) {
+            // In a real app, this would add to user's watchlist
+            alert('Added to your list!');
+        }
+
+        function likeMovie(movieId) {
+            // In a real app, this would save the user's preference
+            alert('Thanks for your feedback!');
+        }
+
+        // Back to top functionality
+        window.addEventListener('scroll', () => {
+            const backToTop = document.getElementById('backToTop');
+            if (window.scrollY > 300) {
+                backToTop.style.display = 'block';
+            } else {
+                backToTop.style.display = 'none';
+            }
+        });
+
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Enhanced form submission
+        document.getElementById('searchForm').addEventListener('submit', function(e) {
+            const input = document.getElementById('movieInput');
+            if (!input.value.trim()) {
+                e.preventDefault();
+                alert('Please enter a movie title to search for recommendations.');
+                input.focus();
+            }
+        });
+    </script>
+
+    <style>
+        /* Additional styles for recommendations page */
+        .placeholder-poster {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--card);
+            border: 1px solid var(--border);
+            min-height: 200px;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .poster-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        .poster-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .no-results-content {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .no-results-icon {
+            font-size: 6rem;
+            margin-bottom: 1.5rem;
+            opacity: 0.5;
+        }
+
+        .no-results-title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        .no-results-text {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .back-to-top {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 50px;
+            height: 50px;
+            background: var(--accent);
+            color: var(--text);
+            border: none;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: none;
+            z-index: 1000;
+            transition: all var(--transition-fast);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .back-to-top:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .results-header {
+                text-align: center;
+                margin-bottom: 1.5rem;
+            }
+            
+            .movie-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            }
+        }
+    </style>
+</body>
+</html>
