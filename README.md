@@ -81,15 +81,20 @@ CineMatch is a modern, Netflix-style movie recommendation system that provides p
 ## 🎥 Demo
 
 ### Homepage
-![Homepage Screenshot](docs/screenshots/homepage.png)
+![Homepage Screenshot](project/static/Home.jpg)
 
 ### Movie Recommendations
-![Recommendations Screenshot](docs/screenshots/recommendations.png)
+![Recommendations Screenshot](project/static/Recomendations.jpg)
 
 ### Movie Details
-![Movie Details Screenshot](docs/screenshots/movie-details.png)
+![Movie Details Screenshot](project/static/Details.jpg)
 
-> **Live Demo**: [CineMatch Demo](https://your-demo-link.com) *(Coming Soon)*
+### Movie Search
+![Movie Search Screenshot](project/static/Search.jpg)
+
+### Movie Trending
+![Movie Trending Screenshot](project/static/Trending.jpg)
+
 
 ---
 
@@ -415,10 +420,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Contact & Support
 
-- **Developer**: [Your Name](https://github.com/yourusername)
-- **Email**: your.email@example.com
-- **Project Link**: [https://github.com/yourusername/cinematch](https://github.com/yourusername/cinematch)
-- **Issues**: [Report a Bug](https://github.com/yourusername/cinematch/issues)
+- **Developer**: [Your Name](https://github.com/himanshumis2022)
+- **Email**: himanshumis1900@gmail.com
+- **Project Link**: https://github.com/himanshumis2022/cinematch-recommendation-system
 
 ---
 
@@ -426,6 +430,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **⭐ Star this repository if you found it helpful!**
 
-Made with ❤️ and 🍿 by [Your Name]
+Made with ❤️ and 🍿 by Himanshu
 
 </div>
