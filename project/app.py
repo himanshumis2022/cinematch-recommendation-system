@@ -3,8 +3,18 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from functools import lru_cache
+from concurrent.futures import ThreadPoolExecutor
+import threading
+import time
 
 from recommendation_model import recommend, available_titles
+
+# Performance optimizations
+CACHE_TIMEOUT = 300  # 5 minutes
+movie_cache = {}
+cache_timestamps = {}
+cache_lock = threading.Lock()
 
 # Create a session with retry strategy
 session = requests.Session()
@@ -82,6 +92,33 @@ def is_movie_filtered(movie_title):
         # Add other movies to filter here
     ]
     return movie_title in filtered_titles
+
+def get_cached_movie_details(tmdb_id):
+    """Get movie details with caching for better performance."""
+    with cache_lock:
+        current_time = time.time()
+        
+        # Check if we have a valid cached result
+        if (tmdb_id in movie_cache and 
+            tmdb_id in cache_timestamps and 
+            current_time - cache_timestamps[tmdb_id] < CACHE_TIMEOUT):
+            return movie_cache[tmdb_id]
+        
+        # Fetch new data
+        movie_details = get_movie_details(tmdb_id)
+        
+        # Cache the result
+        if movie_details:  # Only cache successful results
+            movie_cache[tmdb_id] = movie_details
+            cache_timestamps[tmdb_id] = current_time
+            
+            # Clean old cache entries (keep cache size manageable)
+            if len(movie_cache) > 500:
+                oldest_key = min(cache_timestamps, key=cache_timestamps.get)
+                del movie_cache[oldest_key]
+                del cache_timestamps[oldest_key]
+        
+        return movie_details
 
 def get_movie_details(tmdb_id):
     try:
@@ -236,17 +273,40 @@ def recommend_route():
         flash(str(e))
         return redirect(url_for('index'))
 
+    # Use cached movie details for faster loading
     enriched = []
-    for r in recs:
-        try:
-            info = get_movie_details(r['id'])
-            if not info.get('poster'):
-                continue
-            enriched.append(info)
-            if len(enriched) >= 15:  # Load more for infinite scroll
-                break
-        except Exception:
-            continue
+    
+    # Process in smaller batches for faster initial loading
+    def process_movie_batch(movie_recs, batch_size=5):
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = []
+            
+            for r in movie_recs[:batch_size]:
+                future = executor.submit(get_cached_movie_details, r['id'])
+                futures.append((future, r))
+            
+            batch_results = []
+            for future, r in futures:
+                try:
+                    info = future.result(timeout=3)  # 3 second timeout per request
+                    if info and info.get('poster_path'):  # Check for poster availability
+                        batch_results.append(info)
+                except Exception as e:
+                    print(f"Error processing movie {r['id']}: {e}")
+                    continue
+                    
+            return batch_results
+    
+    # Process first batch quickly for immediate display
+    enriched = process_movie_batch(recs, batch_size=8)
+    
+    # If we need more, process additional movies
+    if len(enriched) < 6 and len(recs) > 8:
+        additional = process_movie_batch(recs[8:], batch_size=7)
+        enriched.extend(additional)
+    
+    # Limit initial load to 12 movies for faster response
+    enriched = enriched[:12]
 
     if len(enriched) == 0:
         flash('No recommendations with available posters found. Try another title.')
@@ -268,37 +328,69 @@ def api_recommendations():
     rating_filter = float(request.args.get('rating', 0))
     
     try:
-        # Get base recommendations
-        recs = recommend(movie, top_n=50)
+        # Use caching key to avoid recomputing same requests
+        cache_key = f"rec_{movie}_{genre_filter}_{year_filter}_{rating_filter}"
         
-        enriched = []
-        for r in recs:
-            try:
-                info = get_movie_details(r['id'])
-                if not info:
-                    continue
+        # Check cache first for faster response
+        with cache_lock:
+            current_time = time.time()
+            if (cache_key in movie_cache and 
+                cache_key in cache_timestamps and 
+                current_time - cache_timestamps[cache_key] < CACHE_TIMEOUT):
+                all_enriched = movie_cache[cache_key]
+            else:
+                # Get base recommendations (reduced number for faster response)
+                recs = recommend(movie, top_n=30)
+                
+                # Process movies in parallel for much faster loading
+                def fetch_and_filter_movie(r):
+                    try:
+                        info = get_cached_movie_details(r['id'])
+                        if not info:
+                            return None
+                            
+                        # Only include movies with posters for better UX
+                        if not info.get('poster_path') and not info.get('poster'):
+                            return None
+                            
+                        # Apply filters
+                        if genre_filter and info.get('genres'):
+                            genre_names = [g.get('name', '').lower() for g in info['genres'] if isinstance(g, dict)]
+                            if genre_filter.lower() not in ' '.join(genre_names):
+                                return None
+                                
+                        if year_filter and info.get('release_date'):
+                            movie_year = info['release_date'][:4]
+                            if movie_year != year_filter:
+                                return None
+                                
+                        if rating_filter > 0 and info.get('vote_average', 0) < rating_filter:
+                            return None
+                            
+                        return info
+                    except Exception:
+                        return None
+                
+                # Use parallel processing for much faster loading
+                with ThreadPoolExecutor(max_workers=6) as executor:
+                    # Process movies in parallel
+                    futures = [executor.submit(fetch_and_filter_movie, r) for r in recs]
+                    all_enriched = []
                     
-                # Only include movies with posters for better UX
-                if not info.get('poster_path') and not info.get('poster'):
-                    continue
-                    
-                # Apply filters
-                if genre_filter and info.get('genres'):
-                    genre_names = [g.get('name', '').lower() for g in info['genres'] if isinstance(g, dict)]
-                    if genre_filter.lower() not in ' '.join(genre_names):
-                        continue
-                        
-                if year_filter and info.get('release_date'):
-                    movie_year = info['release_date'][:4]
-                    if movie_year != year_filter:
-                        continue
-                        
-                if rating_filter > 0 and info.get('vote_average', 0) < rating_filter:
-                    continue
-                    
-                enriched.append(info)
-            except Exception:
-                continue
+                    for future in futures:
+                        try:
+                            result = future.result(timeout=2)  # Fast timeout for responsiveness
+                            if result:
+                                all_enriched.append(result)
+                            # Stop when we have enough results
+                            if len(all_enriched) >= 24:
+                                break
+                        except Exception:
+                            continue
+                
+                # Cache the results
+                movie_cache[cache_key] = all_enriched
+                cache_timestamps[cache_key] = current_time
         
         # Paginate results
         start_idx = (page - 1) * per_page
@@ -326,22 +418,44 @@ def add_recent_movie():
 
 @app.route('/api/popular', methods=['GET'])
 def get_popular_movies():
-    """Get popular movies for trending section"""
+    """Get popular movies for trending section with caching"""
+    cache_key = "popular_movies"
+    
+    # Check cache first for instant loading
+    with cache_lock:
+        current_time = time.time()
+        if (cache_key in movie_cache and 
+            cache_key in cache_timestamps and 
+            current_time - cache_timestamps[cache_key] < CACHE_TIMEOUT):
+            return jsonify(movie_cache[cache_key])
+    
     try:
-        response = session.get(f'https://api.themoviedb.org/3/movie/popular?api_key={TMDB_API_KEY}&page=1')
+        # Use faster timeout for popular movies
+        response = session.get(
+            f'https://api.themoviedb.org/3/movie/popular?api_key={TMDB_API_KEY}&page=1',
+            timeout=(3, 8)  # Faster timeout
+        )
         if response.status_code == 200:
             movies = response.json().get('results', [])
-            # Filter out unwanted movies
-            filtered_movies = []
-            for movie in movies:
-                if not is_movie_filtered(movie.get('title', '')):
-                    filtered_movies.append(movie)
-                if len(filtered_movies) >= 12:
-                    break
+            # Filter and limit movies in one pass for better performance
+            filtered_movies = [
+                movie for movie in movies 
+                if not is_movie_filtered(movie.get('title', ''))
+            ][:15]  # Get a few extra for better selection
+            
+            # Cache the results
+            with cache_lock:
+                movie_cache[cache_key] = filtered_movies
+                cache_timestamps[cache_key] = current_time
+            
             return jsonify(filtered_movies)
         else:
             return jsonify({'error': 'Failed to fetch popular movies'}), 500
     except Exception as e:
+        # Return cached data if available, even if expired
+        with cache_lock:
+            if cache_key in movie_cache:
+                return jsonify(movie_cache[cache_key])
         return jsonify({'error': str(e)}), 500
 
 

@@ -97,7 +97,7 @@ class NetflixEnhancedApp {
             const params = new URLSearchParams({
                 movie: this.currentMovie,
                 page: this.currentPage + 1,
-                per_page: 6,
+                per_page: 8,  // Load more at once for fewer requests
                 ...this.currentFilters
             });
 
@@ -948,16 +948,50 @@ class NetflixEnhancedApp {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const img = entry.target;
-                    img.src = img.dataset.src;
-                    img.classList.remove('lazy');
+                    
+                    // Preload image for smoother loading
+                    const preloadImg = new Image();
+                    preloadImg.onload = () => {
+                        img.src = img.dataset.src;
+                        img.classList.remove('lazy');
+                        img.style.opacity = '1';
+                    };
+                    preloadImg.onerror = () => {
+                        // Show fallback on error
+                        const fallback = img.closest('.movie-card')?.querySelector('.poster-fallback');
+                        if (fallback) {
+                            img.style.display = 'none';
+                            fallback.style.display = 'flex';
+                        }
+                        img.classList.remove('lazy');
+                    };
+                    preloadImg.src = img.dataset.src;
                     observer.unobserve(img);
                 }
             });
+        }, {
+            rootMargin: '150px',  // Start loading before images are visible
+            threshold: 0.1
         });
 
         images.forEach(img => {
+            img.style.opacity = '0';
+            img.style.transition = 'opacity 0.3s ease';
             imageObserver.observe(img);
             img.classList.add('lazy');
+        });
+        
+        // Immediately load first 6 images for faster perceived loading
+        const firstImages = Array.from(images).slice(0, 6);
+        firstImages.forEach(img => {
+            const preloadImg = new Image();
+            preloadImg.onload = () => {
+                img.src = img.dataset.src;
+                img.classList.remove('lazy');
+                img.style.opacity = '1';
+            };
+            preloadImg.src = img.dataset.src;
+            imageObserver.unobserve(img);
         });
     }
 
